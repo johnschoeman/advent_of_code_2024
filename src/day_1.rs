@@ -6,12 +6,12 @@ const FILE_PATH: &str = "./day_1_input.txt";
 pub fn run() -> Result<i32, Box<dyn Error>> {
     let contents = fs::read_to_string(FILE_PATH)?;
 
-    let sum = calculate_sum(&contents);
+    let sum = calculate_sim_score(&contents);
 
     Ok(sum)
 }
 
-fn calculate_sum(contents: &str) -> i32 {
+fn calculate_sim_score(contents: &str) -> i32 {
     let mut left_list: Vec<i32> = Vec::new();
     let mut right_list: Vec<i32> = Vec::new();
 
@@ -26,12 +26,19 @@ fn calculate_sum(contents: &str) -> i32 {
         right_list.push(numbers[1]);
     }
 
-    left_list.sort();
-    right_list.sort();
     let result = left_list
         .iter()
-        .zip(right_list.iter())
-        .map(|(x, y)| (x - y).abs())
+        .map(|x| {
+            let count: i32 = right_list
+                .iter()
+                .map(|&x| x as i32)
+                .filter(|y| *y == *x)
+                .collect::<Vec<i32>>()
+                .len()
+                .try_into()
+                .unwrap();
+            return x * count;
+        })
         .sum::<i32>();
 
     result
@@ -49,6 +56,6 @@ mod tests {
 3 1
 1 3
 ";
-        assert_eq!(2, calculate_sum(contents));
+        assert_eq!(5, calculate_sim_score(contents));
     }
 }
