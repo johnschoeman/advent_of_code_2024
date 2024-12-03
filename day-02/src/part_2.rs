@@ -26,7 +26,21 @@ fn is_safe_report(line: &str) -> bool {
     let all_desc_or_asc = is_desc_or_asc(&numbers);
     let all_within_bounds = is_all_within_bounds(&numbers);
 
-    return all_desc_or_asc && all_within_bounds;
+    if all_desc_or_asc && all_within_bounds {
+        return true;
+    }
+
+    for index in 0..numbers.len() {
+        let mut new_numbers = numbers.clone();
+        new_numbers.remove(index);
+        if is_desc_or_asc(&new_numbers) && is_all_within_bounds(&new_numbers) {
+            return true;
+        } else {
+            continue;
+        }
+    }
+
+    return false;
 }
 
 fn is_desc_or_asc(numbers: &Vec<i32>) -> bool {
@@ -67,6 +81,6 @@ mod tests {
 8 6 4 4 1
 1 3 6 7 9
 ";
-        assert_eq!(2, count_safe_reports(contents));
+        assert_eq!(4, count_safe_reports(contents));
     }
 }
