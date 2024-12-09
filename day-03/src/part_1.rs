@@ -1,7 +1,8 @@
 use nom::{
-    bytes::complete::{is_a, tag, take, take_while},
+    bytes::complete::{is_a, is_not, tag, take},
     character::complete::digit1,
     multi::many0,
+    sequence::preceded,
     IResult,
 };
 use std::error::Error;
@@ -41,18 +42,19 @@ fn parse_number(input: &str) -> IResult<&str, Output> {
     Ok((next, num.parse::<i32>().unwrap()))
 }
 
+type NomErr<'a> = nom::error::Error<&'a str>;
+
 fn parse_mul(input: &str) -> IResult<&str, Output> {
-    let (next, _) = take_while(|c: char| c != "m".chars().next().unwrap())(input)?;
-    let (next, _) = match tag::<&str, &str, nom::error::Error<&str>>("mul")(next) {
+    let (next, _) = match preceded(many0(is_not::<&str, &str, NomErr>("m")), tag("mul"))(input) {
         Ok((next, _)) => (next, 0),
         Err(_) => {
             // println!("Didn't match mul");
-            let (next, _) = take(1usize)(next)?;
+            let (next, _) = take(1usize)(input)?;
             return Ok((next, 0));
         }
     };
 
-    let (next, _) = match is_a::<&str, &str, nom::error::Error<&str>>("(")(next) {
+    let (next, _) = match is_a::<&str, &str, NomErr>("(")(next) {
         Ok((next, _)) => (next, 0),
         Err(_) => {
             // println!("Didn't match (");
@@ -62,7 +64,7 @@ fn parse_mul(input: &str) -> IResult<&str, Output> {
 
     let (next, first_num) = parse_number(next)?;
 
-    let (next, _) = match is_a::<&str, &str, nom::error::Error<&str>>(",")(next) {
+    let (next, _) = match is_a::<&str, &str, NomErr>(",")(next) {
         Ok((next, _)) => (next, 0),
         Err(_) => {
             // println!("Didn't match ,");
@@ -72,7 +74,7 @@ fn parse_mul(input: &str) -> IResult<&str, Output> {
 
     let (next, second_num) = parse_number(next)?;
 
-    let (next, _) = match is_a::<&str, &str, nom::error::Error<&str>>(")")(next) {
+    let (next, _) = match is_a::<&str, &str, NomErr>(")")(next) {
         Ok((next, _)) => (next, 0),
         Err(_) => {
             // println!("Didn't match )");
