@@ -12,7 +12,6 @@ const FILE_PATH: &str = "./input1.txt";
 
 pub fn run() -> Result<String, Box<dyn Error>> {
     let contents = fs::read_to_string(FILE_PATH)?;
-
     match process(&contents) {
         Ok(result) => Ok(result.to_string()),
         Err(e) => Err(e.into()),

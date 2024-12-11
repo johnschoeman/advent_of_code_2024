@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
-    bytes::complete::{is_a, tag, take},
-    character::complete::{digit1, none_of},
-    combinator::map,
-    multi::{fold_many0, many0},
-    sequence::preceded,
+    bytes::complete::tag,
+    character::complete::{anychar, digit1},
+    combinator::{map, value},
+    multi::{many0, many_till},
+    sequence::{delimited, separated_pair},
     IResult,
 };
 use std::error::Error;
@@ -12,11 +12,17 @@ use std::fs;
 
 const FILE_PATH: &str = "./input1.txt";
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum Keyword {
+    Mul(i32),
     Do,
     Dont,
-    Mul,
+}
+
+#[derive(Debug, PartialEq)]
+enum ShouldProcess {
+    Yes,
+    No,
 }
 
 pub fn run() -> Result<String, Box<dyn Error>> {
@@ -30,106 +36,61 @@ pub fn run() -> Result<String, Box<dyn Error>> {
 
 fn process(input: &str) -> Result<i32, String> {
     match parse(input) {
-        Ok((_remaining, results)) => {
-            // dbg!(&results);
-            let sum = results
+        Ok((_remaining, instructions)) => {
+            dbg!(&instructions);
+            let sum = instructions
                 .iter()
-                .fold((0, Keyword::Do), |acc, x| match x.1 {
-                    Keyword::Mul => {
-                        if acc.1 == Keyword::Do {
-                            let next_sum = acc.0 + x.0;
-                            return (next_sum, Keyword::Do);
+                .fold((0, ShouldProcess::Yes), |acc, inst| match inst {
+                    Keyword::Mul(product) => {
+                        if acc.1 == ShouldProcess::Yes {
+                            let next_sum = acc.0 + product;
+                            return (next_sum, ShouldProcess::Yes);
                         } else {
                             return acc;
                         }
                     }
-                    Keyword::Do => return (acc.0, Keyword::Do),
-                    Keyword::Dont => return (acc.0, Keyword::Dont),
+                    Keyword::Do => return (acc.0, ShouldProcess::Yes),
+                    Keyword::Dont => return (acc.0, ShouldProcess::No),
                 });
             Ok(sum.0)
         }
-        Err(_err) => Err("parsing failed".to_string()),
+        Err(_err) => {
+            dbg!(_err);
+            Err("parsing failed".to_string())
+        }
     }
 }
 
-
-type Value = i32;
-type Output = (Value, Keyword);
-
-fn parse(input: &str) -> IResult<&str, Vec<Output>> {
-    fold_many0(parse_mul, Vec::new, |mut acc: Vec<_>, item| {
-        acc.push(item);
-        return acc;
-    })(input)
+fn parse(input: &str) -> IResult<&str, Vec<Keyword>> {
+    many0(map(many_till(anychar, parse_instruction), |value| {
+        return value.1;
+    }))(input)
 }
 
-fn parse_number(input: &str) -> IResult<&str, Value> {
+fn parse_instruction(input: &str) -> IResult<&str, Keyword> {
+    alt((
+        value(Keyword::Do, tag("do()")),
+        value(Keyword::Dont, tag("don't()")),
+        parse_mul,
+    ))(input)
+}
+
+fn parse_mul(input: &str) -> IResult<&str, Keyword> {
+    let (next, _) = tag("mul")(input)?;
+
+    let (next, result) = delimited(
+        tag("("),
+        separated_pair(parse_number, tag(","), parse_number),
+        tag(")"),
+    )(next)?;
+
+    let product = result.0 * result.1;
+    return Ok((next, Keyword::Mul(product)));
+}
+
+fn parse_number(input: &str) -> IResult<&str, i32> {
     let (next, num) = digit1(input)?;
-    Ok((next, num.parse::<Value>().unwrap()))
-}
-
-type NomErr<'a> = nom::error::Error<&'a str>;
-
-fn parse_mul(input: &str) -> IResult<&str, Output> {
-    let (next, keyword_match) = match preceded(
-        many0(none_of::<&str, &str, NomErr>("md")),
-        alt((
-            map(tag("mul"), |_s: &str| Keyword::Mul),
-            map(tag("do()"), |_s: &str| Keyword::Do),
-            map(tag("don't()"), |_s: &str| Keyword::Dont),
-        )),
-    )(input)
-    {
-        Ok((next, matched)) => (next, (0, matched)),
-        Err(_) => {
-            // println!("Didn't match mul");
-            let (next, _) = take(1usize)(input)?;
-            let output = (0, Keyword::Mul);
-            return Ok((next, output));
-        }
-    };
-
-    if keyword_match.1 == Keyword::Do {
-        return Ok((next, (0, Keyword::Do)));
-    }
-    if keyword_match.1 == Keyword::Dont {
-        return Ok((next, (0, Keyword::Dont)));
-    }
-
-    let (next, _) = match is_a::<&str, &str, NomErr>("(")(next) {
-        Ok((next, _)) => (next, 0),
-        Err(_) => {
-            // println!("Didn't match (");
-            let output = (0, Keyword::Mul);
-            return Ok((next, output));
-        }
-    };
-
-    let (next, first_num) = parse_number(next)?;
-
-    let (next, _) = match is_a::<&str, &str, NomErr>(",")(next) {
-        Ok((next, _)) => (next, 0),
-        Err(_) => {
-            // println!("Didn't match ,");
-            let output = (0, Keyword::Mul);
-            return Ok((next, output));
-        }
-    };
-
-    let (next, second_num) = parse_number(next)?;
-
-    let (next, _) = match is_a::<&str, &str, NomErr>(")")(next) {
-        Ok((next, _)) => (next, 0),
-        Err(_) => {
-            // println!("Didn't match )");
-            let output = (0, Keyword::Mul);
-            return Ok((next, output));
-        }
-    };
-
-    let result = first_num * second_num;
-    let output = (result, Keyword::Mul);
-    Ok((next, output))
+    Ok((next, num.parse::<i32>().unwrap()))
 }
 
 #[cfg(test)]
