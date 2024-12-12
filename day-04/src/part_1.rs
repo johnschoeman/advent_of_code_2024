@@ -179,7 +179,7 @@ MXMXAXMASX";
 
     #[test]
     fn test_process_3() -> Result<(), String> {
-let contents = "\
+        let contents = "\
 XSXMAA
 XXAMMS
 SSSMAA
@@ -189,6 +189,4 @@ XMASMM";
         assert_eq!(2, process(contents)?);
         Ok(())
     }
-
 }
-
