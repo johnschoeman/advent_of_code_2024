@@ -1,3 +1,9 @@
+mod part_1;
+
 fn main() {
-    println!("Hello, world!");
+    let result1 = part_1::run();
+    match result1 {
+        Ok(sum) => println!("Part 1 Result: {}", sum),
+        Err(e) => println!("Error: {}", e),
+    }
 }
