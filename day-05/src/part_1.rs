@@ -1,12 +1,20 @@
 use nom::{
     bytes::complete::tag,
-    multi::many0,
+    character::complete::{digit1, newline},
+    multi::{many1, separated_list1},
+    sequence::{separated_pair, terminated},
     IResult,
 };
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 
 const FILE_PATH: &str = "./input1.txt";
+
+type Page<'a> = &'a str;
+type OrderingRule<'a> = (Page<'a>, Page<'a>);
+type PageList<'a> = Vec<Page<'a>>;
+type OrderingRules<'a> = HashMap<Page<'a>, Vec<Page<'a>>>;
 
 pub fn run() -> Result<String, Box<dyn Error>> {
     let contents = fs::read_to_string(FILE_PATH)?;
@@ -16,18 +24,72 @@ pub fn run() -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn process(input: &str) -> Result<i32, String> {
+fn process(input: &str) -> Result<usize, String> {
     match parse(input) {
         Ok((_remaining, results)) => {
-            // dbg!(&results);
-            Ok(12)
+            let (ordering_rules, page_lists) = results;
+            let ordering_rules_map = build_ordering_rules_map(&ordering_rules);
+
+            let sum = page_lists
+                .iter()
+                .filter(|page_list| {
+                    let result = is_ordering_valid(&ordering_rules_map, page_list);
+                    result
+                })
+                .map(|page_list| middle_element(page_list))
+                .sum::<usize>();
+
+            Ok(sum)
         }
         Err(_err) => Err("parsing failed".to_string()),
     }
 }
 
-fn parse(input: &str) -> IResult<&str, Vec<&str>> {
-    let (_next, parts) = separated_list1(newline)(input)
+fn middle_element<'a>(list: &'a Vec<&'a str>) -> usize {
+    let idx = list.len() / 2;
+    list[idx].parse::<usize>().unwrap_or_default()
+}
+
+fn build_ordering_rules_map<'a>(ordering_rules: &'a Vec<OrderingRule<'a>>) -> OrderingRules<'a> {
+    let mut map: OrderingRules<'a> = HashMap::new();
+    for (lower, upper) in ordering_rules {
+        map.entry(upper).or_insert(vec![]).push(lower);
+    }
+    map
+}
+
+fn is_ordering_valid(ordering_rules: &OrderingRules, page_list: &PageList) -> bool {
+    page_list
+        .iter()
+        .enumerate()
+        .fold(true, |acc, (index, &page)| {
+            if !acc {
+                return false;
+            }
+            let next_pages = &page_list[(index + 1)..];
+            let default_lower_pages = vec![];
+            let lower_pages = ordering_rules.get(page).unwrap_or(&default_lower_pages);
+            let is_not_ordered = next_pages
+                .iter()
+                .any(|later_page| lower_pages.contains(later_page));
+            !is_not_ordered
+        })
+}
+
+fn parse(input: &str) -> IResult<&str, (Vec<OrderingRule>, Vec<PageList>)> {
+    let (next, ordering_rules) = many1(terminated(ordering_rule, newline))(input)?;
+    let (next, _) = newline(next)?;
+    let (next, page_lists) = many1(terminated(page_list, newline))(next)?;
+
+    Ok((next, (ordering_rules, page_lists)))
+}
+
+fn ordering_rule(input: &str) -> IResult<&str, OrderingRule> {
+    separated_pair(digit1, tag("|"), digit1)(input)
+}
+
+fn page_list(input: &str) -> IResult<&str, PageList> {
+    separated_list1(tag(","), digit1)(input)
 }
 
 #[cfg(test)]
@@ -64,13 +126,10 @@ mod tests {
 75,29,13
 75,97,47,61,53
 61,13,29
-97,13,75,29,47";
+97,13,75,29,47
+";
 
-        assert_eq!(12, process(contents)?);
+        assert_eq!(143, process(contents)?);
         Ok(())
     }
 }
-
-
-
-
