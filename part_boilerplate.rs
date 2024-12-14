@@ -6,7 +6,7 @@ use nom::{
 use std::error::Error;
 use std::fs;
 
-const FILE_PATH: &str = "./input1.txt";
+const FILE_PATH: &str = "./input.txt";
 
 pub fn run() -> Result<String, Box<dyn Error>> {
     let contents = fs::read_to_string(FILE_PATH)?;
