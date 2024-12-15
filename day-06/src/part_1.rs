@@ -1,10 +1,6 @@
 use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::newline,
-    combinator::value,
-    multi::many0,
-    IResult,
+    branch::alt, bytes::complete::tag, character::complete::newline, combinator::value,
+    multi::many0, IResult,
 };
 use std::error::Error;
 use std::fs;
