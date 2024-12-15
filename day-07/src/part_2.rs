@@ -15,6 +15,7 @@ type Equation = (u64, Vec<u64>);
 enum Operator {
     Add,
     Mult,
+    Concat,
 }
 
 pub fn run() -> Result<String, Box<dyn Error>> {
@@ -30,6 +31,7 @@ fn process(input: &str) -> Result<u64, String> {
         Ok((_remaining, results)) => {
             // dbg!(&results);
             let result = results.iter().fold(0, |acc, (result, operands)| {
+                // println!("{}", acc);
                 if can_produce_value(*result, operands) {
                     acc + result
                 } else {
@@ -47,22 +49,27 @@ fn process(input: &str) -> Result<u64, String> {
 
 fn can_produce_value(target_value: u64, operands: &Vec<u64>) -> bool {
     let num_operations = operands.len() - 1;
-    let num_possible_combinations = 2u64.pow(num_operations as u32);
+    let num_possible_combinations = 3u32.pow(num_operations as u32);
 
     for i in 0..num_possible_combinations {
-        let mut operators = format!("{:016b}", i)
-            .chars()
+        let mut operators = to_base_3(i)
+            .into_iter()
             .map(|c| {
                 if c == '0' {
                     Operator::Add
-                } else {
+                } else if c == '1' {
                     Operator::Mult
+                } else {
+                    Operator::Concat
                 }
             })
             .collect::<Vec<Operator>>();
 
         operators.push(Operator::Add); // First operator should be applied to the second operand
         operators.reverse();
+        while operators.len() < operands.len() {
+            operators.push(Operator::Add);
+        }
 
         let operations = operands.iter().zip(operators.iter()).collect::<Vec<_>>();
 
@@ -71,6 +78,11 @@ fn can_produce_value(target_value: u64, operands: &Vec<u64>) -> bool {
             .fold(operands[0], |acc, (operand, operator)| match operator {
                 Operator::Add => acc + *operand,
                 Operator::Mult => acc * *operand,
+                Operator::Concat => {
+                    let mut acc_str = acc.to_string();
+                    acc_str.push_str(&operand.to_string());
+                    acc_str.parse().unwrap()
+                }
             });
         // dbg!(target_value, &result);
 
@@ -80,6 +92,21 @@ fn can_produce_value(target_value: u64, operands: &Vec<u64>) -> bool {
     }
 
     false
+}
+
+fn to_base_3(mut num: u32) -> Vec<char> {
+    let mut result = String::new();
+
+    if num == 0 {
+        result.push('0');
+    }
+
+    while num > 0 {
+        result.push_str(&(num % 3).to_string());
+        num /= 3;
+    }
+
+    result.chars().rev().collect::<Vec<_>>()
 }
 
 fn parse(input: &str) -> IResult<&str, Vec<Equation>> {
@@ -106,17 +133,18 @@ mod tests {
     #[test]
     fn test_process() -> Result<(), String> {
         let contents = "\
+292: 11 6 16 20
+192: 17 8 14
+7290: 6 8 6 15
 190: 10 19
 3267: 81 40 27
 83: 17 5
 156: 15 6
-7290: 6 8 6 15
 161011: 16 10 13
-192: 17 8 14
 21037: 9 7 18 13
-292: 11 6 16 20
 ";
-        assert_eq!(3749, process(contents)?);
+
+        assert_eq!(11387, process(contents)?);
         Ok(())
     }
 }
