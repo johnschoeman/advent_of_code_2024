@@ -1,8 +1,8 @@
-mod part_1;
+mod part1;
 // mod part_2;
 
 fn main() {
-    let result1 = part_1::run();
+    let result1 = part1::run();
     match result1 {
         Ok(sum) => println!("Part 1 Result: {}", sum),
         Err(e) => println!("Error: {}", e),

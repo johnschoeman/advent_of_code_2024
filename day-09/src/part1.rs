@@ -21,8 +21,9 @@ enum Disk {
     FreeSpace,
 }
 
-fn process(input: &str) -> Result<usize, String> {
-    let unformatted_disk: Vec<Disk> =
+#[tracing::instrument]
+pub fn process(input: &str) -> Result<usize, String> {
+    let mut disk: Vec<Disk> =
         input
         .trim()
         .chars()
@@ -39,7 +40,6 @@ fn process(input: &str) -> Result<usize, String> {
         .collect();
     // dbg!(&unformatted_disk);
 
-    let mut disk: Vec<Disk> = unformatted_disk.clone();
     let mut freeing_idx: usize = disk.len() - 1;
     let mut move_to_idx: usize = 0;
 
