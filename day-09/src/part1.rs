@@ -23,12 +23,11 @@ enum Disk {
 
 #[tracing::instrument]
 pub fn process(input: &str) -> Result<usize, String> {
-    let mut disk: Vec<Disk> =
-        input
+    let mut disk: Vec<Disk> = input
         .trim()
         .chars()
         .enumerate()
-        .flat_map(|(idx, x)| { 
+        .flat_map(|(idx, x)| {
             let count = x.to_digit(10).unwrap() as usize;
             if idx % 2 == 0 {
                 let id = idx / 2;
@@ -48,35 +47,34 @@ pub fn process(input: &str) -> Result<usize, String> {
             Disk::FileBlock(_) => {
                 move_to_idx += 1;
             }
-            Disk::FreeSpace => {
-                match disk[freeing_idx] {
-                    Disk::FileBlock(id) => {
-                        disk[move_to_idx] = Disk::FileBlock(id);
-                        disk[freeing_idx] = Disk::FreeSpace;
-                        move_to_idx += 1;
-                        freeing_idx -= 1;
-                    }
-                    Disk::FreeSpace => {
-                        freeing_idx -= 1;
-                    }
+            Disk::FreeSpace => match disk[freeing_idx] {
+                Disk::FileBlock(id) => {
+                    disk[move_to_idx] = Disk::FileBlock(id);
+                    disk[freeing_idx] = Disk::FreeSpace;
+                    move_to_idx += 1;
+                    freeing_idx -= 1;
                 }
-            }
+                Disk::FreeSpace => {
+                    freeing_idx -= 1;
+                }
+            },
         }
     }
 
     // dbg!(&disk);
     // print_disk(&disk);
 
-    let result = disk.into_iter().enumerate().fold(0, |acc, (idx, x)| {
-        match x {
+    let result = disk
+        .into_iter()
+        .enumerate()
+        .fold(0, |acc, (idx, x)| match x {
             Disk::FileBlock(id) => {
                 return acc + id * idx;
             }
             Disk::FreeSpace => {
                 return acc;
             }
-        }
-    });
+        });
 
     return Ok(result);
 }
