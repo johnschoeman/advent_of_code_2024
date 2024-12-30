@@ -34,16 +34,8 @@ fn process(input: &str) -> Result<u32, String> {
 
             let result: u32 = heads
                 .into_iter()
-                .map(|head| {
-                    let mut initial_visited: HashSet<Position> = HashSet::new();
-                    determine_trails(&head, &topo, &mut initial_visited, height, width)
-                })
+                .map(|head| determine_trails(&head, &topo, height, width))
                 .sum();
-
-            // let mut visited: HashSet<Position> = HashSet::new();
-            // let head = &heads[0];
-            // dbg!(&head);
-            // let result = determine_trails(head, &topo, &mut visited, height, width);
 
             Ok(result)
         }
@@ -51,13 +43,7 @@ fn process(input: &str) -> Result<u32, String> {
     }
 }
 
-fn determine_trails(
-    head: &Position,
-    topo: &Topo,
-    mut visited: &mut HashSet<Position>,
-    height: usize,
-    width: usize,
-) -> u32 {
+fn determine_trails(head: &Position, topo: &Topo, height: usize, width: usize) -> u32 {
     let head_elevation = topo[head.0 as usize][head.1 as usize];
     // dbg!(&head, &head_elevation);
 
@@ -72,7 +58,6 @@ fn determine_trails(
             let (row, col) = pos;
             *row >= 0 && *row < height as i32 && *col >= 0 && *col <= width as i32
         })
-        .filter(|pos| !visited.contains(pos))
         .filter(|pos| {
             let (row_idx, col_idx) = pos;
             let row = &topo[*row_idx as usize];
@@ -84,14 +69,10 @@ fn determine_trails(
         })
         .collect::<Vec<&Position>>();
 
-    next_positions.iter().for_each(|&pos| {
-        visited.insert(*pos);
-    });
-
     // dbg!(&next_positions);
 
     next_positions.into_iter().fold(0, |acc, pos| {
-        acc + determine_trails(pos, topo, &mut visited, height, width)
+        acc + determine_trails(pos, topo, height, width)
     })
 }
 
@@ -149,7 +130,7 @@ mod tests {
 32019012
 01329801
 10456732";
-        assert_eq!(36, process(contents)?);
+        assert_eq!(81, process(contents)?);
         Ok(())
     }
 }
