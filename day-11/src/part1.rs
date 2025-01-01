@@ -11,14 +11,14 @@ pub fn run() -> Result<String, Box<dyn Error>> {
     }
 }
 
-// type Stone<'a> = &'a str;
-// type Stones<'a> = Vec<Stone<'a>>;
-
 type Stone = String;
 type Stones = Vec<Stone>;
 
 fn process(input: &str) -> Result<u32, String> {
-    let mut stones = input.split_whitespace().map(|s| s.to_string()).collect::<Stones>();
+    let mut stones = input
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect::<Stones>();
 
     for x in 0..25 {
         // print_stones(&stones);
@@ -30,7 +30,10 @@ fn process(input: &str) -> Result<u32, String> {
 }
 
 fn blink(stones: Stones) -> Stones {
-    stones.iter().flat_map(|stone| process_stone(stone.clone())).collect()
+    stones
+        .iter()
+        .flat_map(|stone| process_stone(stone.clone()))
+        .collect()
 }
 
 fn process_stone(stone: Stone) -> Stones {
@@ -60,7 +63,10 @@ fn remove_leading_zeros(input: &str) -> String {
 }
 
 fn print_stones(stones: &Stones) {
-    let stones = stones.iter().map(|stone| stone.to_string()).collect::<Vec<String>>();
+    let stones = stones
+        .iter()
+        .map(|stone| stone.to_string())
+        .collect::<Vec<String>>();
     println!("{}", stones.join(" "));
 }
 
